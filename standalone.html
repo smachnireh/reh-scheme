@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Стоянки Средней Азии и Узбекистана: интерактивные схемы</title>
+  <meta name="description" content="Интерактивный археологический атлас древних стоянок Средней Азии и Узбекистана. Полностью автономен, работает офлайн.">
+  <style>
+    :root {
+      --bg: #F9F7F3;
+      --bg-surface: #FFFFFF;
+      --bg-accent: #F4F1EA;
+      --khaki: #4A502C;
+      --khaki-dark: #3D4224;
+      --text: #22201B;
+      --gold: #E8E3D9;
+      --gold-border: #E8E3D9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    h1, h2, h3, h4, .serif {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--gold-border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--text);
+    }
+    .header-sub {
+      font-size: 12px;
+      color: var(--khaki);
+    }
+    .btn {
+      background: var(--bg-accent);
+      border: 1px solid var(--gold-border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #E5D7BE; }
+    .btn-primary {
+      background: var(--khaki);
+      color: white;
+      border-color: var(--khaki-dark);
+    }
+    .btn-primary:hover { background: var(--khaki-dark); }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 14px 20px 10px;
+      border-bottom: 1px solid var(--gold-border);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      cursor: pointer;
+      color: #666;
+      border-radius: 4px;
+    }
+    .tab-btn.active {
+      background: var(--khaki);
+      color: white;
+      font-weight: bold;
+    }
+    .container {
+      padding: 0 20px 20px;
+      display: grid;
+      gap: 15px;
+    }
+    .search-box {
+      margin: 0 20px 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 4px;
+      border: 1px solid var(--gold-border);
+      background: var(--bg-surface);
+      font-size: 14px;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--khaki); }
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--gold-border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .site-item {
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(184, 150, 46, 0.2);
+      margin-bottom: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .site-item:hover, .site-item.active {
+      background: #F4EBDB;
+      border-color: var(--khaki);
+    }
+    .drawer {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--gold-border);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+    }
+    .drawer.open { display: block; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      border: 1px solid var(--gold-border);
+      background: var(--bg-accent);
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 0 10px 10px; }
+      .tabs, .search-box, header { margin-left: 10px; margin-right: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="header-title">Стоянки Средней Азии и Узбекистана: интерактивные схемы</div>
+      <div class="header-sub">Автономный академический атлас древней истории региона (без серверов и сборки)</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" onclick="openQuiz()">Викторина</button>
+      <button class="btn" onclick="exportJSON()">Экспорт JSON</button>
+      <button class="btn" onclick="window.print()">Печать</button>
+    </div>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" class="search-input" placeholder="Умный поиск (опечатки, 'неандерталец', 'пещеры', 'земледелие')..." oninput="filterSites()">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabTerritory" onclick="switchTab('territory')">По территориям и SVG-карта</button>
+    <button class="tab-btn" id="tabTimeline" onclick="switchTab('timeline')">По времени (хронология)</button>
+    <button class="tab-btn" id="tabActivity" onclick="switchTab('activity')">По деятельности (матрица)</button>
+  </div>
+
+  <div class="container" id="mainContent">
+    <!-- Populated by JavaScript -->
+  </div>
+
+  <!-- Detail Drawer -->
+  <div class="drawer" id="siteDrawer">
+    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:15px; border-bottom:1px solid var(--gold-border); padding-bottom:10px;">
+      <div>
+        <span class="badge" id="drawerEpoch">Эпоха</span>
+        <h2 id="drawerName" class="serif" style="font-size:24px; margin-top:4px;">Название</h2>
+        <div id="drawerAlt" style="font-size:12px; color:#666; font-style:italic;"></div>
+      </div>
+      <button class="btn" onclick="closeDrawer()">✕</button>
+    </div>
+    <div id="drawerBody" style="font-size:13px; line-height:1.6;"></div>
+  </div>
+
+  <script>
+    // Embedded Data
+    const SITES = undefined;
+    const GLOSSARY = [{"term":"Ашель (Ашельская культура)","category":"Эпоха","definition":"Раннепалеолитическая археологическая эпоха и культура (ок. 1.7 млн — 100 тыс. лет назад), характеризующаяся появлением первого стандартизированного бифасиального орудия — ручного рубила (бифаса), а также массивных сколов и чопперов.","exampleSiteId":"selungur"},{"term":"Мустье (Мустьерская эпоха)","category":"Эпоха","definition":"Культурно-технологический комплекс среднего палеолита (ок. 300–40 тыс. лет назад), традиционно ассоциируемый с неандертальцами. Характеризуется широким применением технологии леваллуа, изготовлением скребел, дисковидных нуклеусов и остроконечников.","exampleSiteId":"teshik-tash"},{"term":"Техника Леваллуа","category":"Индустрия / Технология","definition":"Особый высокоразвитый метод расщепления камня среднего палеолита, при котором нуклеус предварительно тщательно окалывался по краям для получения одного или нескольких отщепов или пластин заранее заданной идеальной формы.","exampleSiteId":"obirakhmat"},{"term":"Микролит","category":"Индустрия / Технология","definition":"Миниатюрное кремневое орудие правильной геометрической формы (трапеция, сегмент, треугольник) размером от 1 до 3 см. Использовалось в эпоху мезолита и неолита в качестве сменных вкладышей для составных костяных и деревянных наконечников копий, стрел и серпов.","exampleSiteId":"machay"},{"term":"Кельтеминарская культура","category":"Культура","definition":"Неолитическая культура рыболовов и охотников речных дельт Амударьи и Зеравшана (VI–III тыс. до н. э.). Известна гигантскими каркасными жилищами из жердей и камыша, круглодонной лепной керамикой со штампованно-гребенчатым узором и костяными гарпунами.","exampleSiteId":"dzhanbas-kala-4"},{"term":"Джейтунская культура","category":"Культура","definition":"Древнейшая в Средней Азии неолитическая культура оседлых земледельцев и скотоводов предгорий Копетдага (VI тыс. до н. э.). Представляет собой восточное продолжение очага «Плодородного полумесяца», где впервые появились сырцовые дома, одомашненная пшеница, овцы и козы.","exampleSiteId":"jeitun"},{"term":"Бактрийско-Маргианский комплекс (БМАК / Цивилизация Окса)","category":"Культура","definition":"Высокоразвитая городская цивилизация эпохи бронзы (ок. 2300–1500 гг. до н. э.) в бассейнах Амударьи и Мургаба. Отличалась монументальной фортификацией, дворцами, храмами огня, развитой металлургией бронзы, каменной пластикой и сложной системой ирригации.","exampleSiteId":"gonurdepe"},{"term":"Сапаллинская культура","category":"Культура","definition":"Локальный северобактрийский вариант культуры БМАК в Сурхандарьинской области Узбекистана (XVIII–XV вв. до н. э.). Характеризуется укреплёнными замками-крепостями (Сапаллитепа) с лабиринтными проходами и высококачественной гончарной керамикой без росписи.","exampleSiteId":"sapallitepa"},{"term":"Чустская культура","category":"Культура","definition":"Земледельческая культура поздней бронзы и раннего железа Ферганской долины (XII–VII вв. до н. э.). Отличалась укреплёнными поселениями, расписной краснофоновой керамикой с чёрным узором, обилием бронзовых серпов, ножей и зернотёрок.","exampleSiteId":"chust"},{"term":"Энеолит (Медно-каменный век)","category":"Эпоха","definition":"Переходная эпоха от каменного века к бронзовому (ок. V–IV тыс. до н. э.), когда наряду с преобладающими каменными орудиями появляются первые изделия из чистой самородной меди, осваивается холодная и горячая ковка.","exampleSiteId":"sarazm"},{"term":"Петроглиф","category":"Термин","definition":"Выбитые, процарапанные или нанесённые минеральной краской (охрой) наскальные изображения древнейших эпох. В Центральной Азии содержат ценнейшие сюжеты об охоте, обрядах, космологии, колесницах и животном мире региона.","exampleSiteId":"sarmyshsay"},{"term":"Бифас (Ручное рубило)","category":"Индустрия / Технология","definition":"Массивное каменное орудие миндалевидной или овальной формы, тщательно оббитое с двух сторон сколами для формирования острого режущего края по всему периметру.","exampleSiteId":"kulbulak"},{"term":"Кенотаф","category":"Термин","definition":"Символическое погребение без останков умершего (совершалось, если человек погиб на чужбине или утонул). В эпоху бронзы (Бустан, Джаркутан) в кенотафы помещали глиняные куклы, одежду и богатый погребальный инвентарь.","exampleSiteId":"bustan-6"},{"term":"Тепе / Депе","category":"Термин","definition":"Холм искусственного происхождения, образовавшийся в результате многовекового накопления остатков разрушенных глинобитных и сырцовых построек на одном и том же месте.","exampleSiteId":"altyndepe"},{"term":"Культура Яз I","category":"Культура","definition":"Археологическая культура переходного периода от бронзы к раннему железному веку в Бактрии и Маргиане (X–VIII вв. до н. э.), характеризующаяся появлением лепной посуды с геометрической росписью и исчезновением пышных царских погребений.","exampleSiteId":"kuchuktepa"},{"term":"Пластинчатая техника","category":"Индустрия / Технология","definition":"Способ раскалывания камня верхнего палеолита, при котором с призматического ядрища скалывались длинные, прямые и тонкие пластины, служившие универсальными заготовками для резцов, скребков, наконечников и проколок.","exampleSiteId":"samarkand-site"}];
+    const QUIZ = [{"id":1,"question":"В каком гроте на территории Сурхандарьинской области Узбекистана было обнаружено всемирно известное погребение неандертальского ребёнка в окружении рогов горного козла?","options":["Обирахмат","Тешик-Таш","Мачай","Селунгур"],"correctIndex":1,"explanation":"Грот Тешик-Таш был открыт в 1938 г. А. П. Окладниковым в горах Байсунтау. Это одно из самых знаменитых мустьерских погребений в мировой палеоантропологии.","siteIdHint":"teshik-tash"},{"id":2,"question":"Какая неолитическая культура Средней Азии была открыта С. П. Толстовым в древней дельте Акчадарьи и известна гигантскими овальными жилищами и развитым рыболовством?","options":["Джейтунская культура","Кельтеминарская культура","Чустская культура","Анауская культура"],"correctIndex":1,"explanation":"Кельтеминарская культура (IV–III тыс. до н. э., стоянка Джанбас-кала 4) характеризуется поселениями рыболовов и охотников, круглодонной орнаментированной керамикой и костяными гарпунами.","siteIdHint":"dzhanbas-kala-4"},{"id":3,"question":"На каком поселении в Северном Казахстане были получены древнейшие в мире доказательства одомашнивания лошади и употребления кобыльего молока (ок. 3500 г. до н. э.)?","options":["Ботай","Саразм","Ушбулак","Танбалы"],"correctIndex":0,"explanation":"Ботайское поселение энеолитической эпохи содержало сотни тысяч костей лошадей, следы удил на зубах и липидные следы кумыса на черепках керамики.","siteIdHint":"botai"},{"id":4,"question":"Какое древнее поселение у подножия Копетдага в Туркменистане считается самым ранним памятником оседлого земледелия и производящего хозяйства в Средней Азии (VI тыс. до н. э.)?","options":["Алтын-депе","Гонур-депе","Джейтун","Намазга-депе"],"correctIndex":2,"explanation":"Поселение Джейтун исследовалось В. М. Массоном. Здесь обнаружены древнейшие сырцовые дома, зёрна культивируемой пшеницы и ячменя, а также кости домашних овец.","siteIdHint":"jeitun"},{"id":5,"question":"Какой выдающийся памятник протоурбанизации эпохи бронзы на юге Узбекистана называют «первым храмовым комплексом и протогородом» региона?","options":["Джаркутан","Кучук-тепа","Ходжикент","Учтут"],"correctIndex":0,"explanation":"Джаркутан (бассейн Шерабаддарьи, XVI–XI вв. до н. э.) включал монументальный Храм Огня, цитадель с дворцом правителя, кварталы ремесленников и обширный некрополь.","siteIdHint":"djarkutan"},{"id":6,"question":"В каком ущелье на юге Узбекистана находятся древнейшие наскальные рисунки, выполненные минеральной охрой и изображающие маскированных охотников с луками?","options":["Сармышсай","Зараутсай (Зараут-Камар)","Саймалуу-Таш","Тамгалы"],"correctIndex":1,"explanation":"Грот Зараут-Камар в ущелье Зараутсай (Кугитанг) знаменит мезолитическими и неолитическими рисунками охрой, где охотники изображены в накидках-масках с луками.","siteIdHint":"zarautsay"},{"id":7,"question":"Чем уникален памятник Учтут в пустынной зоне Навоийской области Узбекистана?","options":["Там найден древнейший золотой слиток","Это крупнейший карьер и мастерская эпохи неолита по добыче кремня со штольнями","Это крупнейшее зернохранилище бронзового века","Там обнаружена древнейшая колесница"],"correctIndex":1,"explanation":"Учтут — грандиозный комплекс неолитических карьеров и шахт, где добывали кремень для орудий труда и снабжали им племена на сотни километров вокруг.","siteIdHint":"uchtut"},{"id":8,"question":"К какому археологическому комплексу принадлежат столица Маргианы Гонур-депе и крепость Сапаллитепа?","options":["Кельтеминарская культура","Бактрийско-Маргианский археологический комплекс (БМАК / Цивилизация Окса)","Афанасьевская общность","Ямная культура"],"correctIndex":1,"explanation":"БМАК (Bactria-Margiana Archaeological Complex) — протогородская цивилизация бронзового века в оазисах Средней Азии с высокой архитектурой, металлургией и развитой религией.","siteIdHint":"gonurdepe"},{"id":9,"question":"Какой памятник на территории Таджикистана включён в Список Всемирного наследия ЮНЕСКО как ключевой центр энеолитического и бронзового металлургического обмена IV–III тыс. до н. э.?","options":["Саразм","Оби-Киик","Тут-Каул","Каратумшук"],"correctIndex":0,"explanation":"Саразм в долине Зеравшана являлся крупнейшим протоурбанным центром металлургии меди и бронзы и узелом трансевразийской торговли лазуритом и металлом.","siteIdHint":"sarazm"},{"id":10,"question":"Какая культура раннего железного века в Ферганской долине известна укреплёнными поселениями земледельцев, расписной посудой и массовыми бронзовыми серпами?","options":["Культура Яз I","Чустская культура","Андроновская культура","Сапаллинская культура"],"correctIndex":1,"explanation":"Чустская культура (XII–VII вв. до н. э., памятники Чуст, Дальверзин) принадлежала первым оседлым ирригационным земледельцам Ферганской долины.","siteIdHint":"chust"}];
+
+    let currentTab = 'territory';
+    let selectedSiteId = SITES[0] ? SITES[0].id : null;
+    let filtered = [...SITES];
+
+    // LocalStorage fallback for notes and favorites
+    function getFavorites() {
+      try { return JSON.parse(localStorage.getItem('arca_favs') || '[]'); } catch { return []; }
+    }
+    function toggleFav(id) {
+      let favs = getFavorites();
+      if (favs.includes(id)) favs = favs.filter(x => x !== id);
+      else favs.push(id);
+      localStorage.setItem('arca_favs', JSON.stringify(favs));
+      render();
+      if (selectedSiteId === id) openSite(id);
+    }
+    function getNote(id) {
+      try { return localStorage.getItem('arca_note_' + id) || ''; } catch { return ''; }
+    }
+    function saveNote(id, text) {
+      try { localStorage.setItem('arca_note_' + id, text); } catch {}
+      alert('Заметка сохранена локально в браузере!');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (tab === 'territory') document.getElementById('tabTerritory').classList.add('active');
+      if (tab === 'timeline') document.getElementById('tabTimeline').classList.add('active');
+      if (tab === 'activity') document.getElementById('tabActivity').classList.add('active');
+      render();
+    }
+
+    function filterSites() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      if (!q) {
+        filtered = [...SITES];
+      } else {
+        filtered = SITES.filter(s => {
+          const str = (s.name + ' ' + s.altNames.join(' ') + ' ' + s.country + ' ' + s.region + ' ' + s.culture + ' ' + s.keyFindings + ' ' + s.activities.join(' ')).toLowerCase();
+          return str.includes(q) || (q.includes('неандертал') && (s.id === 'teshik-tash' || s.id === 'angilak' || s.id === 'obirakhmat'));
+        });
+      }
+      render();
+    }
+
+    function openSite(id) {
+      selectedSiteId = id;
+      const s = SITES.find(x => x.id === id);
+      if (!s) return;
+      const d = document.getElementById('siteDrawer');
+      document.getElementById('drawerName').innerText = s.name;
+      document.getElementById('drawerEpoch').innerText = s.epoch + ' • ' + s.country;
+      document.getElementById('drawerAlt').innerText = s.altNames ? s.altNames.join(' • ') : '';
+
+      const isFav = getFavorites().includes(s.id);
+      const note = getNote(s.id);
+
+      document.getElementById('drawerBody').innerHTML = `
+        <div style="margin-bottom:12px; background:#FAF5EB; padding:10px; border-radius:4px; border:1px solid rgba(184,150,46,0.25);">
+          <div><strong>📍 Локализация:</strong> ${s.region} (${s.coordinates.lat}° N, ${s.coordinates.lng}° E)</div>
+          <div><strong>⏱ Датировка:</strong> ${s.dating.displayLabel}</div>
+          <div><strong>🏛 Культура:</strong> ${s.culture}</div>
+          <div><strong>🏺 Тип памятника:</strong> ${s.siteType}</div>
+          <div><strong>🛡 Достоверность:</strong> ${s.verificationStatus}</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <strong>Хозяйственная деятельность:</strong><br>
+          ${s.activities.map(a => '<span class="badge">' + a + '</span>').join('')}
+        </div>
+        <div style="margin-bottom:12px;">
+          <strong>Основные находки:</strong>
+          <p style="background:white; padding:10px; border-radius:4px; border:1px solid #ddd; margin-top:4px;">${s.keyFindings}</p>
+        </div>
+        <div style="margin-bottom:12px;">
+          <strong>История исследования:</strong>
+          <p style="background:white; padding:10px; border-radius:4px; border:1px solid #ddd; margin-top:4px;">${s.researchHistory}</p>
+        </div>
+        <div style="margin-bottom:12px;">
+          <strong>Значение для науки:</strong>
+          <p style="font-style:italic; border-left:3px solid #6B7040; padding-left:8px; margin-top:4px;">${s.scientificSignificance}</p>
+        </div>
+        <div style="margin-bottom:15px;">
+          <strong>Источники и литература:</strong>
+          <ul style="padding-left:18px; margin-top:4px; font-size:12px;">
+            ${(s.sources || []).map(src => '<li>' + src + '</li>').join('')}
+          </ul>
+        </div>
+        <div style="border-top:1px solid var(--gold-border); padding-top:10px;">
+          <button class="btn ${isFav ? 'btn-primary' : ''}" onclick="toggleFav('${s.id}')">${isFav ? '★ В избранном' : '☆ В избранное'}</button>
+          <div style="margin-top:10px;">
+            <label><strong>Моя заметка:</strong></label>
+            <textarea id="noteInput" style="width:100%; height:60px; padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:4px;">${note}</textarea>
+            <button class="btn" style="margin-top:4px;" onclick="saveNote('${s.id}', document.getElementById('noteInput').value)">Сохранить заметку</button>
+          </div>
+        </div>
+      `;
+      d.classList.add('open');
+    }
+
+    function closeDrawer() {
+      document.getElementById('siteDrawer').classList.remove('open');
+    }
+
+    function render() {
+      const container = document.getElementById('mainContent');
+      if (currentTab === 'territory') {
+        container.innerHTML = `
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:15px;">
+            <div class="card">
+              <h3 class="serif" style="font-size:18px; margin-bottom:10px;">Дерево территорий (найдено: ${filtered.length})</h3>
+              <div style="max-height:550px; overflow-y:auto;">
+                ${filtered.map(s => `
+                  <div class="site-item ${selectedSiteId === s.id ? 'active' : ''}" onclick="openSite('${s.id}')">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                      <span>${s.name}</span>
+                      <span style="font-size:11px; color:#6B7040;">${s.country}</span>
+                    </div>
+                    <div style="font-size:11px; color:#666;">${s.region}</div>
+                    <div style="font-size:11px; color:#888;">${s.epoch} • ${s.dating.displayLabel}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; text-align:center;">
+              <h3 class="serif" style="font-size:18px; margin-bottom:8px;">Интерактивная карта памятников</h3>
+              <p style="font-size:12px; color:#666; margin-bottom:15px;">Кликните по любой точке стоянки на карте:</p>
+              <svg viewBox="0 0 600 400" style="width:100%; max-height:450px; background:#FAF5EB; border:1px solid var(--gold-border); border-radius:6px;">
+                <!-- Waterways & Terrain -->
+                <path d="M 0 0 L 60 0 C 70 100 50 200 60 400 L 0 400 Z" fill="#B3CCD4" />
+                <path d="M 160 140 C 185 130 200 150 205 180 C 210 210 180 230 160 230 C 145 230 140 200 145 160 Z" fill="#B3CCD4" />
+                <path d="M 360 300 Q 310 270 230 220" fill="none" stroke="#688B97" stroke-width="2" />
+                <path d="M 420 190 Q 330 170 220 150" fill="none" stroke="#688B97" stroke-width="2" />
+                <!-- Sites points -->
+                ${filtered.map(s => {
+                  const x = ((s.coordinates.lng - 52) / 32) * 560 + 20;
+                  const y = ((54 - s.coordinates.lat) / 19) * 360 + 20;
+                  const isSel = selectedSiteId === s.id;
+                  return `
+                    <g onclick="openSite('${s.id}')" style="cursor:pointer;">
+                      <circle cx="${x}" cy="${y}" r="${isSel ? 7 : 5}" fill="${isSel ? '#B8962E' : '#6B7040'}" stroke="#fff" stroke-width="1.5" />
+                      <text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" font-family="serif" fill="#2E2B1F" font-weight="bold">${s.name}</text>
+                    </g>
+                  `;
+                }).join('')}
+              </svg>
+            </div>
+          </div>
+        `;
+      } else if (currentTab === 'timeline') {
+        container.innerHTML = `
+          <div class="card">
+            <h3 class="serif" style="font-size:18px; margin-bottom:10px;">Хронологическая периодизация</h3>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+              ${['Нижний палеолит', 'Средний палеолит', 'Верхний палеолит', 'Мезолит', 'Неолит', 'Энеолит', 'Бронзовый век', 'Ранний железный век'].map(ep => {
+                const epSites = filtered.filter(s => s.epoch === ep);
+                return `
+                  <div style="background:#FAF5EB; border:1px solid var(--gold-border); border-top:3px solid #6B7040; border-radius:4px; padding:10px;">
+                    <strong class="serif" style="font-size:15px;">${ep}</strong>
+                    <div style="font-size:11px; color:#6B7040; margin-bottom:8px;">Памятников: ${epSites.length}</div>
+                    ${epSites.map(s => `
+                      <div class="site-item" onclick="openSite('${s.id}')" style="margin-bottom:6px; font-size:12px;">
+                        <strong>${s.name}</strong> (${s.country})<br>
+                        <span style="font-size:10px; color:#666;">${s.culture}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentTab === 'activity') {
+        const cats = ['Охота', 'Рыболовство', 'Скотоводство', 'Земледелие', 'Кремнёвая индустрия', 'Керамика', 'Металлургия', 'Погребальные практики', 'Культ и наскальное искусство', 'Обмен и торговля'];
+        container.innerHTML = `
+          <div class="card">
+            <h3 class="serif" style="font-size:18px; margin-bottom:10px;">Кластеры деятельности</h3>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+              ${cats.map(cat => {
+                const catSites = filtered.filter(s => s.activities.includes(cat));
+                return `
+                  <div style="background:#FAF5EB; border:1px solid var(--gold-border); border-radius:4px; padding:10px;">
+                    <strong class="serif" style="font-size:15px; color:#4A4E2A;">${cat} (${catSites.length})</strong>
+                    <div style="margin-top:6px; max-height:200px; overflow-y:auto;">
+                      ${catSites.map(s => `
+                        <div class="site-item" onclick="openSite('${s.id}')" style="margin-bottom:4px; font-size:11px;">
+                          ${s.name} — <span style="color:#666;">${s.epoch}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function openQuiz() {
+      const q = QUIZ[0];
+      const ans = prompt(q.question + '\n\n' + q.options.map((o, i) => (i + 1) + '. ' + o).join('\n') + '\n\nВведите номер ответа (1-' + q.options.length + '):');
+      if (ans) {
+        const idx = parseInt(ans) - 1;
+        if (idx === q.correctIndex) {
+          alert('Верно! ' + q.explanation);
+        } else {
+          alert('Неверно. ' + q.explanation);
+        }
+      }
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify({ sites: SITES, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'archaeology_central_asia_export.json';
+      a.click();
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
